@@ -39,6 +39,7 @@ flags.DEFINE_string('mode', 'validation', 'Running mode. One of {"train", "valid
 
 FLAGS = flags.FLAGS
 
+
 def loadTR( TrFileName):
     rawDataset = tf.data.TFRecordDataset(TrFileName)    # 读取 TFRecord 文件
     feature_description = { # 定义Feature结构，告诉解码器每个Feature的类型是什么
@@ -48,6 +49,17 @@ def loadTR( TrFileName):
     def formatImage(imagesContent):
         images = tf.image.convert_image_dtype(tf.image.decode_png(imagesContent, channels=1), tf.float32)
         return 0
+
+    @staticmethod
+    def data_augmentation(images):
+        if FLAGS.random_flip_up_down:
+            images = tf.image.random_flip_up_down(images)
+        if FLAGS.random_brightness:
+            images = tf.image.random_brightness(images, max_delta=0.3)
+        if FLAGS.random_contrast:
+            images = tf.image.random_contrast(images, 0.8, 1.2)
+        return images
+
     def parseExample(example_string):  # 将 TFRecord 文件中的每一个序列化的 tf.train.Example 解码
         feature_dict = tf.io.parse_single_example(example_string, feature_description)
         feature_dict['image'] = tf.io.decode_png(feature_dict['image'])  # 解码PNG图片

@@ -99,8 +99,8 @@ class CWCR(tf.keras.Model):
             activation=tf.nn.relu6
         )
 #        print(self.conv5.input_shape)
-        self.flatten = tf.keras.layers.Reshape(target_shape=(8*8*512))
-        self.dense1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.relu)
+        self.flatten = tf.keras.layers.Reshape(target_shape=(8*8*512,))
+        self.dense1 = tf.keras.layers.Dense(units=1024, activation=tf.nn.relu6)
         self.dense2 = tf.keras.layers.Dense(units=3755)
 
     def call(self, inputs):
@@ -119,7 +119,7 @@ class CWCR(tf.keras.Model):
         return output
 
 model = CWCR()
-model.compute_output_shape(input_shape=(1,64,64,1))
+#model.compute_output_shape(input_shape=(1,64,64,1))
 #for layer in model.layers:
 #    print(layer.output_shape)
 

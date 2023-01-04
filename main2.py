@@ -326,5 +326,3 @@ def main(_):
         logger.info('the result info label {0} predict index {1} predict_val {2}'.format(190, final_predict_index,
                                                                                          final_predict_val))
 
-if __name__ == "__main__":
-    tf.compat.v1.app.run()

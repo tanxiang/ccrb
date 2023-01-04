@@ -13,7 +13,7 @@ from absl import logging
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
-flags.DEFINE_boolean('random_flip_up_down', False, "Whether to random flip up down")
+flags.DEFINE_boolean('--random_flip_up_down', False, "Whether to random flip up down")
 flags.DEFINE_boolean('random_brightness', True, "whether to adjust brightness")
 flags.DEFINE_boolean('random_contrast', True, "whether to random constrast")
 flags.DEFINE_integer('charset_size', 3755, "Choose the first `charset_size` characters only.")
@@ -53,11 +53,11 @@ def loadTR(TrFileName):
 
     def parseExample(example_string):  # 将 TFRecord 文件中的每一个序列化的 tf.train.Example 解码
         feature_dict = tf.io.parse_single_example(example_string, feature_description)
-        imageExample = tf.image.resize_images(
+        imageExample = tf.image.resize(
             tf.image.convert_image_dtype(
                 tf.io.decode_png(feature_dict['image'], channels=1), tf.float32
             ),
-            tf.constant([FLAGS.image_size, FLAGS.image_size], dtype=tf.int32)
+            size=(64, 64)
         )  # 解码PNG图片
         return dataAugmentation(imageExample), feature_dict['label']
 

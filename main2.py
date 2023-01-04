@@ -41,7 +41,6 @@ def loadTR(TrFileName):
         'image': tf.io.FixedLenFeature([], tf.string),
         'label': tf.io.FixedLenFeature([], tf.int64),
     }
-
     @staticmethod
     def dataAugmentation(images):
         if FLAGS.random_flip_up_down:
@@ -107,8 +106,24 @@ def CWCR(input=None):
 
 
 model = CWCR(tf.keras.Input((64,64,1)))
-model.compute_output_shape(input_shape=(1, 64, 64, 1))
 model.compile()
+optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
+checkpoint = tf.train.Checkpoint(myAwesomeModel=model)
+manager = tf.train.CheckpointManager(checkpoint, directory='./save', max_to_keep=3)
+data_loader = loadTR('train.tfr')
+for batch_index in range(1, 5000):
+    X, y = data_loader.get_batch(128)
+    with tf.GradientTape() as tape:
+        y_pred = model(X)
+        loss = tf.keras.losses.sparse_categorical_crossentropy(y_true=y, y_pred=y_pred)
+        loss = tf.reduce_mean(loss)
+        print("batch %d: loss %f" % (batch_index, loss.numpy()))
+    grads = tape.gradient(loss, model.variables)
+    optimizer.apply_gradients(grads_and_vars=zip(grads, model.variables))
+    if batch_index % 100 == 0:
+        # 使用CheckpointManager保存模型参数到文件并自定义编号
+        path = manager.save(checkpoint_number=batch_index)
+        print("model saved to %s" % path)
 #tf.keras.applications.VGG16()
 # for layer in model.layers:
 #    print(layer.output_shape)

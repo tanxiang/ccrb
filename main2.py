@@ -55,7 +55,6 @@ def loadTR(TrFileName):
             images = tf.image.random_brightness(images, max_delta=0.3)
         if FLAGS.random_contrast:
             images = tf.image.random_contrast(images, 0.8, 1.2)
-        print(images)
         return images
 
     def parseExample(example_string):  # 将 TFRecord 文件中的每一个序列化的 tf.train.Example 解码
@@ -67,7 +66,7 @@ def loadTR(TrFileName):
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
         print(imageExample)
-        return dataAugmentation(imageExample), feature_dict['label']
+        return dataAugmentation(imageExample), tf.one_hot(feature_dict['label'],depth=3755)
     return rawDataset.map(parseExample)
 
 
@@ -132,5 +131,5 @@ model.compile(
         loss=tf.keras.losses.sparse_categorical_crossentropy,
         metrics=[tf.keras.metrics.sparse_categorical_accuracy]
 )
-model.fit(data_loader, epochs=1000)
+model.fit(data_loader, epochs=1000,batch_size=32)
 tf.keras.applications.MobileNetV2()

@@ -1,10 +1,16 @@
 import os
+import sys
 import random
 import time
+
+import keras.layers
 import numpy as np
 import tensorflow as tf
 import pickle
 from PIL import Image
+
+from keras import backend
+from keras.applications import imagenet_utils
 from keras.engine import training
 from tensorflow.python.ops import control_flow_ops
 from absl import flags
@@ -13,7 +19,7 @@ from absl import logging
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
-flags.DEFINE_boolean('--random_flip_up_down', False, "Whether to random flip up down")
+flags.DEFINE_boolean('random_flip_up_down', False, "Whether to random flip up down")
 flags.DEFINE_boolean('random_brightness', True, "whether to adjust brightness")
 flags.DEFINE_boolean('random_contrast', True, "whether to random constrast")
 flags.DEFINE_integer('charset_size', 3755, "Choose the first `charset_size` characters only.")
@@ -33,7 +39,7 @@ flags.DEFINE_integer('batch_size', 128, 'Validation batch size')
 flags.DEFINE_string('mode', 'validation', 'Running mode. One of {"train", "valid", "test"}')
 
 FLAGS = flags.FLAGS
-
+FLAGS(sys.argv)
 
 def loadTR(TrFileName):
     rawDataset = tf.data.TFRecordDataset(TrFileName)  # 读取 TFRecord 文件
@@ -49,6 +55,7 @@ def loadTR(TrFileName):
             images = tf.image.random_brightness(images, max_delta=0.3)
         if FLAGS.random_contrast:
             images = tf.image.random_contrast(images, 0.8, 1.2)
+        print(images)
         return images
 
     def parseExample(example_string):  # 将 TFRecord 文件中的每一个序列化的 tf.train.Example 解码
@@ -57,36 +64,44 @@ def loadTR(TrFileName):
             tf.image.convert_image_dtype(
                 tf.io.decode_png(feature_dict['image'], channels=1), tf.float32
             ),
-            size=(64, 64)
+            [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
+        print(imageExample)
         return dataAugmentation(imageExample), feature_dict['label']
-
     return rawDataset.map(parseExample)
 
 
-def CWCR(input=None):
+def CWCR(inputShape=None):
+    inputShape = imagenet_utils.obtain_input_shape(
+        inputShape,
+        default_size=64,
+        min_size=32,
+        data_format=backend.image_data_format(),
+        require_flatten=True
+    )
+    imgInput = keras.layers.Input(inputShape)
     x = tf.keras.layers.Conv2D(
-        name='conv1',
-        filters=64,  # 卷积层神经元（卷积核）数目
-        kernel_size=[5, 5],  # 感受野大小
+        64,  # 卷积层神经元（卷积核）数目
+        (5, 5),  # 感受野大小
         padding='same',  # padding策略（vaild 或 same）
-        activation=tf.nn.relu6  # 激活函数
-    )(input)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=2)(x)
+        activation=tf.nn.relu6,  # 激活函数
+        name='conv1'
+    )(imgInput)
+    x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2),padding='same',name='pool1')(x)
+    x = tf.keras.layers.Conv2D(
+        128,
+        (3, 3),
+        padding='same',
+        activation=tf.nn.relu6
+    )(x)
+    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2,2),padding='same',name='pool2')(x)
     x = tf.keras.layers.Conv2D(
         filters=128,
         kernel_size=[3, 3],
         padding='same',
         activation=tf.nn.relu6
     )(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=2)(x)
-    x = tf.keras.layers.Conv2D(
-        filters=128,
-        kernel_size=[3, 3],
-        padding='same',
-        activation=tf.nn.relu6
-    )(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=2)(x)
+    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2,2),padding='same',name='pool3')(x)
     x = tf.keras.layers.Conv2D(
         filters=256,
         kernel_size=[3, 3],
@@ -98,32 +113,24 @@ def CWCR(input=None):
         padding='same',
         activation=tf.nn.relu6
     )(x)
-    #        print(self.conv5.input_shape)
-    x = tf.keras.layers.Reshape(target_shape=(8 * 8 * 256,))(x)
+    print(x)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    print(x)
     x = tf.keras.layers.Dense(units=1024, activation=tf.nn.relu6)(x)
-    x = tf.keras.layers.Dense(units=3755)(x)
-    return training.Model(input, x, name="CWCR")
+    print(x)
+    x = tf.keras.layers.Dense(units=3755,activation=tf.nn.softmax)(x)
+    print(x)
+    return training.Model(imgInput, x, name="CWCR")
 
 
-model = CWCR(tf.keras.Input((64,64,1)))
-model.compile()
-optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
+data_loader = loadTR('train.tfr')
+model = CWCR((64, 64,1))
 checkpoint = tf.train.Checkpoint(myAwesomeModel=model)
 manager = tf.train.CheckpointManager(checkpoint, directory='./save', max_to_keep=3)
-data_loader = loadTR('train.tfr')
-for batch_index in range(1, 5000):
-    X, y = data_loader.get_batch(128)
-    with tf.GradientTape() as tape:
-        y_pred = model(X)
-        loss = tf.keras.losses.sparse_categorical_crossentropy(y_true=y, y_pred=y_pred)
-        loss = tf.reduce_mean(loss)
-        print("batch %d: loss %f" % (batch_index, loss.numpy()))
-    grads = tape.gradient(loss, model.variables)
-    optimizer.apply_gradients(grads_and_vars=zip(grads, model.variables))
-    if batch_index % 100 == 0:
-        # 使用CheckpointManager保存模型参数到文件并自定义编号
-        path = manager.save(checkpoint_number=batch_index)
-        print("model saved to %s" % path)
-#tf.keras.applications.VGG16()
-# for layer in model.layers:
-#    print(layer.output_shape)
+model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+        loss=tf.keras.losses.sparse_categorical_crossentropy,
+        metrics=[tf.keras.metrics.sparse_categorical_accuracy]
+)
+model.fit(data_loader, epochs=1000)
+tf.keras.applications.MobileNetV2()

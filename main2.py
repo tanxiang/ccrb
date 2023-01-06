@@ -129,13 +129,13 @@ model.compile(
     loss="sparse_categorical_crossentropy",
     metrics=['sparse_categorical_accuracy'],
 )
-checkpoint_filepath = './checkpoint'
+checkpoint_filepath = './checkpoint/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
     save_weights_only=True,
     monitor='val_sparse_categorical_accuracy',
     mode='max',
     save_best_only=True)
-model.fit(trainDataSet.shuffle(buffer_size=3755*4), batch_size=32, steps_per_epoch=3755,epochs=20,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=100)
+model.fit(trainDataSet.shuffle(buffer_size=3755*4), batch_size=32, steps_per_epoch=3755,epochs=200,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=100)
 #model.load_weights(checkpoint_filepath)
 

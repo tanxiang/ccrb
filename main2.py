@@ -67,7 +67,8 @@ def loadTR(TrFileName):
         )  # 解码PNG图片
         imageExample=dataAugmentation(imageExample)
         print(imageExample)
-        return tf.expand_dims(imageExample, axis=0), tf.expand_dims(tf.one_hot(feature_dict['label'],depth=3755),axis=0)
+        lbohs = tf.expand_dims(tf.one_hot(feature_dict['label'], depth=3755), axis=0)
+        return tf.expand_dims(imageExample, axis=0),  tf.expand_dims(feature_dict['label'],axis=0)
     return rawDataset.map(parseExample)
 
 
@@ -129,9 +130,9 @@ model = CWCR((64, 64,1))
 checkpoint = tf.train.Checkpoint(myAwesomeModel=model)
 manager = tf.train.CheckpointManager(checkpoint, directory='./save', max_to_keep=3)
 model.compile(
-        optimizer='adam',
-        loss='sparse_categorical_crossentropy',
-        metrics=[tf.keras.metrics.sparse_categorical_accuracy]
+        optimizer="adam",
+        loss="sparse_categorical_crossentropy",
+        metrics=['sparse_categorical_accuracy']
 )
-model.fit(data_loader, epochs=1000,batch_size=32)
+model.fit(data_loader, epochs=1000,batch_size=128)
 tf.keras.applications.MobileNetV2()

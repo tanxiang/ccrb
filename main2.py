@@ -24,7 +24,6 @@ flags.DEFINE_boolean('random_brightness', True, "whether to adjust brightness")
 flags.DEFINE_boolean('random_contrast', True, "whether to random constrast")
 flags.DEFINE_integer('charset_size', 3755, "Choose the first `charset_size` characters only.")
 flags.DEFINE_integer('image_size', 64, "Needs to provide same value as in training.")
-flags.DEFINE_boolean('gray', True, "whether to change the rbg to gray")
 flags.DEFINE_integer('max_steps', 16002, 'the max training steps ')
 flags.DEFINE_integer('eval_steps', 100, "the step num to eval")
 flags.DEFINE_integer('save_steps', 500, "the steps to save")
@@ -66,8 +65,6 @@ def loadTR(TrFileName):
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
         imageExample=dataAugmentation(imageExample)
-        print(imageExample)
-        lbohs = tf.expand_dims(tf.one_hot(feature_dict['label'], depth=3755), axis=0)
         return tf.expand_dims(imageExample, axis=0),  tf.expand_dims(feature_dict['label'],axis=0)
     return rawDataset.map(parseExample)
 
@@ -115,17 +112,14 @@ def CWCR(inputShape=None):
         padding='same',
         activation=tf.nn.relu6
     )(x)
-    print(x)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    print(x)
     x = tf.keras.layers.Dense(units=1024, activation=tf.nn.relu6)(x)
-    print(x)
     x = tf.keras.layers.Dense(units=3755,activation=tf.nn.softmax)(x)
-    print(x)
     return training.Model(imgInput, x, name="CWCR")
 
 
 data_loader = loadTR('train.tfr')
+testDataSet = loadTR('test.tfr')
 model = CWCR((64, 64,1))
 checkpoint = tf.train.Checkpoint(myAwesomeModel=model)
 manager = tf.train.CheckpointManager(checkpoint, directory='./save', max_to_keep=3)
@@ -134,5 +128,4 @@ model.compile(
         loss="sparse_categorical_crossentropy",
         metrics=['sparse_categorical_accuracy']
 )
-model.fit(data_loader, epochs=1000,batch_size=128)
-tf.keras.applications.MobileNetV2()
+model.fit(data_loader,batch_size=128,steps_per_epoch=16002,validation_data=testDataSet,validation_freq=100)

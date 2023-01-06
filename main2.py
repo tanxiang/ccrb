@@ -40,12 +40,14 @@ flags.DEFINE_string('mode', 'validation', 'Running mode. One of {"train", "valid
 FLAGS = flags.FLAGS
 FLAGS(sys.argv)
 
+
 def loadTR(TrFileName):
     rawDataset = tf.data.TFRecordDataset(TrFileName)  # 读取 TFRecord 文件
     feature_description = {  # 定义Feature结构，告诉解码器每个Feature的类型是什么
         'image': tf.io.FixedLenFeature([], tf.string),
         'label': tf.io.FixedLenFeature([], tf.int64),
     }
+
     @staticmethod
     def dataAugmentation(images):
         if FLAGS.random_flip_up_down:
@@ -64,8 +66,9 @@ def loadTR(TrFileName):
             ),
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
-        imageExample=dataAugmentation(imageExample)
-        return tf.expand_dims(imageExample, axis=0),  tf.expand_dims(feature_dict['label'],axis=0)
+        imageExample = dataAugmentation(imageExample)
+        return tf.expand_dims(imageExample, axis=0), tf.expand_dims(feature_dict['label'], axis=0)
+
     return rawDataset.map(parseExample)
 
 
@@ -85,22 +88,22 @@ def CWCR(inputShape=None):
         activation=tf.nn.relu6,  # 激活函数
         name='conv0'
     )(imgInput)
-    x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2),padding='same',name='pool1')(x)
+    x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2), padding='same', name='pool1')(x)
     x = tf.keras.layers.Conv2D(
         128,
         (3, 3),
         padding='same',
         activation=tf.nn.relu6,
-        name = 'conv1'
+        name='conv1'
     )(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2,2),padding='same',name='pool2')(x)
+    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool2')(x)
     x = tf.keras.layers.Conv2D(
         filters=128,
         kernel_size=[3, 3],
         padding='same',
         activation=tf.nn.relu6
     )(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2,2),padding='same',name='pool3')(x)
+    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool3')(x)
     x = tf.keras.layers.Conv2D(
         filters=256,
         kernel_size=[3, 3],
@@ -114,18 +117,25 @@ def CWCR(inputShape=None):
     )(x)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dense(units=1024, activation=tf.nn.relu6)(x)
-    x = tf.keras.layers.Dense(units=3755,activation=tf.nn.softmax)(x)
+    x = tf.keras.layers.Dense(units=3755, activation=tf.nn.softmax)(x)
     return training.Model(imgInput, x, name="CWCR")
 
 
-data_loader = loadTR('train.tfr')
-testDataSet = loadTR('test.tfr')
-model = CWCR((64, 64,1))
-checkpoint = tf.train.Checkpoint(myAwesomeModel=model)
-manager = tf.train.CheckpointManager(checkpoint, directory='./save', max_to_keep=3)
+trainDataSet = loadTR('train0.tfr')
+testDataSet = loadTR('test2.tfr')
+model = CWCR((64, 64, 1))
 model.compile(
-        optimizer="adam",
-        loss="sparse_categorical_crossentropy",
-        metrics=['sparse_categorical_accuracy']
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=['sparse_categorical_accuracy'],
 )
-model.fit(data_loader,batch_size=128,steps_per_epoch=16002,validation_data=testDataSet,validation_freq=100)
+checkpoint_filepath = './checkpoint'
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    save_weights_only=True,
+    monitor='val_sparse_categorical_accuracy',
+    mode='max',
+    save_best_only=True)
+model.fit(trainDataSet.shuffle(buffer_size=3755*4), batch_size=32, steps_per_epoch=3755,epochs=20,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=100)
+#model.load_weights(checkpoint_filepath)
+

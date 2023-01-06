@@ -65,8 +65,9 @@ def loadTR(TrFileName):
             ),
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
+        imageExample=dataAugmentation(imageExample)
         print(imageExample)
-        return dataAugmentation(imageExample), tf.one_hot(feature_dict['label'],depth=3755)
+        return tf.expand_dims(imageExample, axis=0), tf.expand_dims(tf.one_hot(feature_dict['label'],depth=3755),axis=0)
     return rawDataset.map(parseExample)
 
 
@@ -84,14 +85,15 @@ def CWCR(inputShape=None):
         (5, 5),  # 感受野大小
         padding='same',  # padding策略（vaild 或 same）
         activation=tf.nn.relu6,  # 激活函数
-        name='conv1'
+        name='conv0'
     )(imgInput)
     x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2),padding='same',name='pool1')(x)
     x = tf.keras.layers.Conv2D(
         128,
         (3, 3),
         padding='same',
-        activation=tf.nn.relu6
+        activation=tf.nn.relu6,
+        name = 'conv1'
     )(x)
     x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2,2),padding='same',name='pool2')(x)
     x = tf.keras.layers.Conv2D(
@@ -127,8 +129,8 @@ model = CWCR((64, 64,1))
 checkpoint = tf.train.Checkpoint(myAwesomeModel=model)
 manager = tf.train.CheckpointManager(checkpoint, directory='./save', max_to_keep=3)
 model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-        loss=tf.keras.losses.sparse_categorical_crossentropy,
+        optimizer='adam',
+        loss='sparse_categorical_crossentropy',
         metrics=[tf.keras.metrics.sparse_categorical_accuracy]
 )
 model.fit(data_loader, epochs=1000,batch_size=32)

@@ -1,6 +1,8 @@
 import tensorflow as tf
 import argparse
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 parser = argparse.ArgumentParser(description='Process some args.')
 parser.add_argument('--data', default='./data/train/')
@@ -19,6 +21,15 @@ def buildTR(dataDir, TrFileName):
                 'image': tf.train.Feature(bytes_list=tf.train.BytesList(value=[image])),  # 图片是一个 Bytes 对象
                 'label': tf.train.Feature(int64_list=tf.train.Int64List(value=[label]))   # 标签是一个 Int 对象
             }
+            print(filename)
+            imageExample = tf.io.decode_image(tf.io.read_file(filename))
+            imageExample = tf.image.convert_image_dtype(
+                imageExample, tf.float32
+            ),
+            plt.title(label)
+            plt.imshow(imageExample)
+            plt.show()
+
             example = tf.train.Example(features=tf.train.Features(feature=feature)) # 通过字典建立 Example
             writer.write(example.SerializeToString())   # 将Example序列化并写入 TFRecord 文件
 

@@ -2,8 +2,6 @@ import os
 import sys
 import random
 import time
-
-import keras.layers
 import numpy as np
 import tensorflow as tf
 import pickle
@@ -80,7 +78,7 @@ def CWCR(inputShape=None):
         data_format=backend.image_data_format(),
         require_flatten=True
     )
-    imgInput = keras.layers.Input(inputShape)
+    imgInput = tf.keras.layers.Input(inputShape)
     x = tf.keras.layers.Conv2D(
         64,  # 卷积层神经元（卷积核）数目
         (5, 5),  # 感受野大小

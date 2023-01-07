@@ -26,10 +26,6 @@ def buildTR(dataDir, TrFileName):
             imageExample = tf.image.convert_image_dtype(
                 imageExample, tf.float32
             ),
-            plt.title(label)
-            plt.imshow(imageExample)
-            plt.show()
-
             example = tf.train.Example(features=tf.train.Features(feature=feature)) # 通过字典建立 Example
             writer.write(example.SerializeToString())   # 将Example序列化并写入 TFRecord 文件
 

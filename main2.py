@@ -82,55 +82,55 @@ def CWCR(inputShape=None):
     imgInput = tf.keras.layers.Input(inputShape)
     x = tf.keras.layers.Conv2D(
         64,  # 卷积层神经元（卷积核）数目
-        (5, 5),  # 感受野大小
+        kernel_size=(3, 3),  # 感受野大小
         padding='same',  # padding策略（vaild 或 same）
-        activation=tf.nn.relu6,  # 激活函数
         name='conv0'
     )(imgInput)
+    x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2), padding='same', name='pool1')(x)
     x = tf.keras.layers.Conv2D(
         128,
-        (3, 3),
+        kernel_size= (3, 3),
         padding='same',
-        activation=tf.nn.relu6,
         name='conv1'
     )(x)
+    x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool2')(x)
     x = tf.keras.layers.Conv2D(
         filters=256,
         kernel_size=[3, 3],
         padding='same',
     )(x)
-    x = tf.keras.layers.Conv2D(
-        filters=256,
-        kernel_size=[3, 3],
-        padding='same',
-        activation=tf.nn.relu6
-    )(x)
+    x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool3')(x)
     x = tf.keras.layers.Conv2D(
         filters=512,
         kernel_size=[3, 3],
         padding='same',
     )(x)
+    x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Conv2D(
         filters=512,
         kernel_size=[3, 3],
         padding='same',
-        activation=tf.nn.relu6
     )(x)
-    x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tf.keras.layers.Dense(units=1024, activation=tf.nn.relu6)(x)
-    x = tf.keras.layers.Dense(units=3755, activation=tf.nn.softmax)(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool4')(x)
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dropout(rate=0.7)(x)
+    x = tf.keras.layers.Dense(units=1024,activation=tf.nn.relu6)(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Dropout(rate=0.7)(x)
+    x = tf.keras.layers.Dense(units=3755)(x)
+    x = tf.keras.layers.BatchNormalization()(x)
     return training.Model(imgInput, x, name="CWCR")
-
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test2.tfr')
 model = CWCR((64, 64, 1))
 model.compile(
-    optimizer="adam",
-    loss="sparse_categorical_crossentropy",
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=['sparse_categorical_accuracy'],
 )
 checkpoint_filepath = './checkpoint/'
@@ -140,6 +140,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     monitor='val_sparse_categorical_accuracy',
     mode='max',
     save_best_only=True)
-model.fit(trainDataSet.shuffle(buffer_size=3755*4), batch_size=32, steps_per_epoch=3755,epochs=200,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=100)
+model.fit(trainDataSet.shuffle(buffer_size=3755*4), batch_size=128, steps_per_epoch=3755,epochs=200,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=100)
 #model.load_weights(checkpoint_filepath)
+tf.keras.applications.MobileNetV2()
 

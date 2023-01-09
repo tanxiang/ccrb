@@ -65,7 +65,6 @@ def loadTR(TrFileName):
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
         imageExample = dataAugmentation(imageExample)
-        plt.imshow(imageExample[:, :,: ]);
         return imageExample, feature_dict['label']
     return rawDataset.map(parseExample).batch(128)
 
@@ -125,7 +124,7 @@ def CWCR(inputShape=None):
     return training.Model(imgInput, x, name="CWCR")
 
 trainDataSet = loadTR('train0.tfr')
-testDataSet = loadTR('test2.tfr')
+testDataSet = loadTR('test1.tfr')
 model = CWCR((64, 64, 1))
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
@@ -139,7 +138,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     monitor= 'loss',
     mode='min',
     save_best_only=True)
-model.fit(trainDataSet.shuffle(buffer_size=200),steps_per_epoch=16002,epochs=2,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_freq=100,validation_steps=5)
+model.fit(trainDataSet.shuffle(buffer_size=200),steps_per_epoch=16002,epochs=2,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=5)
 #model.load_weights(checkpoint_filepath)
 #tf.keras.applications.MobileNetV2()
 

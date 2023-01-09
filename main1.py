@@ -1,15 +1,16 @@
 # top 1 accuracy 0.9249791286257038 top k accuracy 0.9747623788455786
-import logging
 import os
-import pickle
 import random
+import tf_slim as slim
 import time
-
+import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
-import tf_slim as slim
+import tensorflow.compat.v2 as tf2
+import pickle
 from PIL import Image
 from tensorflow.python.ops import control_flow_ops
+
 
 logger = logging.getLogger('Training a chinese write char recognition')
 logger.setLevel(logging.INFO)
@@ -44,49 +45,42 @@ gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
 FLAGS = tf.app.flags.FLAGS
 
 
-class DataIterator:
-    def __init__(self, data_dir):
-        # Set FLAGS.charset_size to a small value if available computation power is limited.
-        truncate_path = data_dir + ('%05d' % FLAGS.charset_size)
-        print(truncate_path)
-        self.image_names = []
-        for root, sub_folder, file_list in os.walk(data_dir):
-            if root < truncate_path:
-                self.image_names += [os.path.join(root, file_path) for file_path in file_list]
-        random.shuffle(self.image_names)
-        self.labels = [int(file_name[len(data_dir):].split(os.sep)[0]) for file_name in self.image_names]
-
-    @property
-    def size(self):
-        return len(self.labels)
+def loadTR(TrFileName):
+    rawDataset = tf2.data.TFRecordDataset(TrFileName)  # 读取 TFRecord 文件
+    feature_description = {  # 定义Feature结构，告诉解码器每个Feature的类型是什么
+        'image': tf2.io.FixedLenFeature([], tf2.string),
+        'label': tf2.io.FixedLenFeature([], tf2.int64),
+    }
 
     @staticmethod
-    def data_augmentation(images):
+    def dataAugmentation(images):
         if FLAGS.random_flip_up_down:
-            images = tf.image.random_flip_up_down(images)
+            images = tf2.image.random_flip_up_down(images)
         if FLAGS.random_brightness:
-            images = tf.image.random_brightness(images, max_delta=0.3)
+            images = tf2.image.random_brightness(images, max_delta=0.3)
         if FLAGS.random_contrast:
-            images = tf.image.random_contrast(images, 0.8, 1.2)
+            images = tf2.image.random_contrast(images, 0.8, 1.2)
         return images
 
-    def input_pipeline(self, batch_size, num_epochs=None, aug=False):
-        images_tensor = tf.convert_to_tensor(self.image_names, dtype=tf.string)
-        labels_tensor = tf.convert_to_tensor(self.labels, dtype=tf.int64)
-        input_queue = tf.train.slice_input_producer([images_tensor, labels_tensor], num_epochs=num_epochs)
+    def parseExample(example_string):  # 将 TFRecord 文件中的每一个序列化的 tf.train.Example 解码
+        feature_dict = tf2.io.parse_single_example(example_string, feature_description)
+        imageExample = tf2.image.resize(
+            tf2.image.convert_image_dtype(
+                tf2.io.decode_png(feature_dict['image'], channels=1), tf.float32
+            ),
+            [FLAGS.image_size, FLAGS.image_size]
+        )  # 解码PNG图片
+        imageExample = dataAugmentation(imageExample)
+        return imageExample,feature_dict['label']
 
-        labels = input_queue[1]
-        images_content = tf.read_file(input_queue[0])
-        images = tf.image.convert_image_dtype(tf.image.decode_png(images_content, channels=1), tf.float32)
-        if aug:
-            images = self.data_augmentation(images)
-        new_size = tf.constant([FLAGS.image_size, FLAGS.image_size], dtype=tf.int32)
-        images = tf.image.resize_images(images, new_size)
-        image_batch, label_batch = tf.train.shuffle_batch([images, labels], batch_size=batch_size, capacity=50000,
+    return rawDataset.map(parseExample)
+
+def input_pipeline(dataMap, batch_size, num_epochs=None, aug=False):
+    dataMap
+    image_batch, label_batch = tf.train.shuffle_batch([images, labels], batch_size=batch_size, capacity=50000,
                                                           min_after_dequeue=10000)
         # print 'image_batch', image_batch.get_shape()
-        return image_batch, label_batch
-
+    return image_batch, label_batch
 
 def build_graph(top_k):
     keep_prob = tf.placeholder(dtype=tf.float32, shape=[], name='keep_prob')
@@ -149,12 +143,12 @@ def build_graph(top_k):
 
 def train():
     print('Begin training')
-    train_feeder = DataIterator(data_dir='./data/train/')
-    test_feeder = DataIterator(data_dir='./data/test/')
+    train_feeder =  loadTR('train0.tfr')
+    test_feeder =  loadTR('test2.tfr')
     model_name = 'chinese-rec-model'
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
-        train_images, train_labels = train_feeder.input_pipeline(batch_size=FLAGS.batch_size, aug=True)
-        test_images, test_labels = test_feeder.input_pipeline(batch_size=FLAGS.batch_size)
+        train_images, train_labels = train_feeder.batch(FLAGS.batch_size)
+        test_images, test_labels = test_feeder.batch(FLAGS.batch_size)
         graph = build_graph(top_k=1)
         saver = tf.train.Saver()
         sess.run(tf.global_variables_initializer())
@@ -218,7 +212,7 @@ def train():
 
 def validation():
     print('Begin validation')
-    test_feeder = DataIterator(data_dir='./data/test/')
+    test_feeder =  loadTR('test2.tfr')
 
     final_predict_val = []
     final_predict_index = []

@@ -128,7 +128,7 @@ trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test2.tfr')
 model = CWCR((64, 64, 1))
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )

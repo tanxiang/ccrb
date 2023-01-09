@@ -46,7 +46,6 @@ def loadTR(TrFileName):
         'image': tf.io.FixedLenFeature([], tf.string),
         'label': tf.io.FixedLenFeature([], tf.int64),
     }
-
     @staticmethod
     def dataAugmentation(images):
         if FLAGS.random_flip_up_down:
@@ -66,9 +65,9 @@ def loadTR(TrFileName):
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
         imageExample = dataAugmentation(imageExample)
-        return tf.expand_dims(imageExample, axis=0), tf.expand_dims(feature_dict['label'], axis=0)
+        return imageExample, feature_dict['label']
 
-    return rawDataset.map(parseExample)
+    return rawDataset.map(parseExample).batch(128)
 
 
 def CWCR(inputShape=None):
@@ -117,10 +116,10 @@ def CWCR(inputShape=None):
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool4')(x)
     x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dropout(rate=0.7)(x)
-    x = tf.keras.layers.Dense(units=1024,activation=tf.nn.relu6)(x)
+    x = tf.keras.layers.Dropout(rate=0.8)(x)
+    x = tf.keras.layers.Dense(units=1024,activation=tf.nn.relu)(x)
     x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Dropout(rate=0.7)(x)
+    x = tf.keras.layers.Dropout(rate=0.8)(x)
     x = tf.keras.layers.Dense(units=3755)(x)
     x = tf.keras.layers.BatchNormalization()(x)
     return training.Model(imgInput, x, name="CWCR")
@@ -129,18 +128,18 @@ trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test2.tfr')
 model = CWCR((64, 64, 1))
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=['sparse_categorical_accuracy'],
+    metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
 checkpoint_filepath = './checkpoint/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
     save_weights_only=True,
-    monitor='val_sparse_categorical_accuracy',
-    mode='max',
+    monitor= 'loss',
+    mode='min',
     save_best_only=True)
-model.fit(trainDataSet.shuffle(buffer_size=3755*4), batch_size=128, steps_per_epoch=3755,epochs=200,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=100)
+model.fit(trainDataSet.shuffle(buffer_size=200),steps_per_epoch=16002,epochs=2,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_freq=100,validation_steps=100)
 #model.load_weights(checkpoint_filepath)
 tf.keras.applications.MobileNetV2()
 

@@ -1,15 +1,15 @@
 # top 1 accuracy 0.9249791286257038 top k accuracy 0.9747623788455786
-import os
-import random
-import tf_slim as slim
-import time
 import logging
+import os
+import pickle
+import random
+import time
+
 import numpy as np
 import tensorflow.compat.v1 as tf
-import pickle
+import tf_slim as slim
 from PIL import Image
 from tensorflow.python.ops import control_flow_ops
-
 
 logger = logging.getLogger('Training a chinese write char recognition')
 logger.setLevel(logging.INFO)

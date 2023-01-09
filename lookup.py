@@ -37,15 +37,16 @@ def loadTR(TrFileName):
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
         imageExample = dataAugmentation(imageExample)
-        return tf.expand_dims(imageExample, axis=0), tf.expand_dims(feature_dict['label'], axis=0)
-
-    return rawDataset.map(parseExample)
+        print(imageExample)
+        return imageExample, feature_dict['label']
+    return rawDataset.map(parseExample).batch(1)
 
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test2.tfr')
 
-for image, label in trainDataSet:
+for image, label in trainDataSet.shuffle(1024):
+    #print(image)
     plt.title(label.numpy())
-    plt.imshow(image[0,:, :, 0])
+    plt.imshow(image[0,:, :, :])
     plt.show()

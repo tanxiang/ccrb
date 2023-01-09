@@ -65,8 +65,8 @@ def loadTR(TrFileName):
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片
         imageExample = dataAugmentation(imageExample)
+        plt.imshow(imageExample[:, :,: ]);
         return imageExample, feature_dict['label']
-
     return rawDataset.map(parseExample).batch(128)
 
 

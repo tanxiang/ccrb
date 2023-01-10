@@ -132,16 +132,17 @@ model.compile(
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
 checkpoint_filepath = './checkpoint/'
-modelName="m{loss:.2f}.fs"
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=os.path.join(checkpoint_filepath,modelName),
+    filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
     verbose=1,
     save_weights_only=True,
-    monitor= 'loss',
-    save_freq=501,
     save_best_only=True)
 #897758 sample
-model.fit(trainDataSet.shuffle(buffer_size=200),steps_per_epoch=7014,epochs=3,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=5)
+model.load_weights('./checkpoint/m4.94.fs')
+model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=5)
+tfmodel =  tf.lite.TFLiteConverter.from_keras_model(model).convert()
+open("model.tflite", "wb").write(tfmodel)
+
 #model.load_weights(checkpoint_filepath)
 #tf.keras.applications.MobileNetV2()
 

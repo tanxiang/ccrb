@@ -137,9 +137,10 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_weights_only=True,
     monitor= 'loss',
     mode='min',
+    save_freq=500,
     save_best_only=True)
 #897758 sample
-model.fit(trainDataSet.shuffle(buffer_size=200),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=5)
+model.fit(trainDataSet.shuffle(buffer_size=200),steps_per_epoch=7014,epochs=3,callbacks=[model_checkpoint_callback], validation_data=testDataSet.shuffle(100),validation_steps=5)
 #model.load_weights(checkpoint_filepath)
 #tf.keras.applications.MobileNetV2()
 

@@ -138,10 +138,10 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_weights_only=True,
     save_best_only=True)
 #897758 sample
-model.load_weights('./checkpoint/m2.32.fs')
+model.load_weights('./checkpoint/m1.59.fs')
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=5)
 tfmodel =  tf.lite.TFLiteConverter.from_keras_model(model).convert()
-open("model3.tflite", "wb").write(tfmodel)
+open("model4.tflite", "wb").write(tfmodel)
 
 #model.load_weights(checkpoint_filepath)
 #tf.keras.applications.MobileNetV2()

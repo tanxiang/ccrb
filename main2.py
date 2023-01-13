@@ -127,7 +127,7 @@ trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
 model = CWCR((64, 64, 1))
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
+    optimizer=tf.keras.optimizers.Adam(),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
@@ -138,8 +138,8 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_weights_only=True,
     save_best_only=True)
 #897758 sample
-model.load_weights('./checkpoint/m1.59.fs')
-model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=5)
+model.load_weights('./checkpoint/m1.35.fs')
+model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
 tfmodel =  tf.lite.TFLiteConverter.from_keras_model(model).convert()
 open("model4.tflite", "wb").write(tfmodel)
 

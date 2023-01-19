@@ -140,7 +140,18 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 #897758 sample
 model.load_weights('./checkpoint/m1.03.fs')
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
-tfmodel =  tf.lite.TFLiteConverter.from_keras_model(model).convert()
-open("model8.tflite", "wb").write(tfmodel)
+
+def representative_data_gen():
+  for input_value in tf.data.Dataset.from_tensor_slices(train_images).batch(1).take(100):
+    # Model has only one input so each data point has one element.
+    yield [input_value]
+
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.representative_dataset = representative_data_gen
+
+tflite_model_quant = converter.convert()
+
+open("model8q.tflite", "wb").write(tflite_model_quant)
 #tf.keras.applications.MobileNetV2()
 

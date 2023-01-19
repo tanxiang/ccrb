@@ -16,6 +16,8 @@ import tensorflow_model_optimization as tfmot
 
 from absl import flags
 from absl import logging
+import logging
+logging.getLogger("tensorflow").setLevel(logging.DEBUG)
 
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -136,6 +138,8 @@ q_aware_model.compile(
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
+q_aware_model.summary()
+
 checkpoint_filepath = './checkpointquat/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),

@@ -69,76 +69,23 @@ def loadTR(TrFileName):
     return rawDataset.map(parseExample).batch(128)
 
 
-def CWCR(inputShape=None):
-    inputShape = imagenet_utils.obtain_input_shape(
-        inputShape,
-        default_size=64,
-        min_size=32,
-        data_format=backend.image_data_format(),
-        require_flatten=True
-    )
-    imgInput = tf.keras.layers.Input(inputShape)
-    x = tf.keras.layers.Conv2D(
-        64,  # 卷积层神经元（卷积核）数目
-        kernel_size=(3, 3),  # 感受野大小
-        padding='same',  # padding策略（vaild 或 same）
-        name='conv0'
-    )(imgInput)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2), padding='same', name='pool1')(x)
-    x = tf.keras.layers.Conv2D(
-        128,
-        kernel_size= (3, 3),
-        padding='same',
-        name='conv1'
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool2')(x)
-    x = tf.keras.layers.Conv2D(
-        filters=256,
-        kernel_size=[3, 3],
-        padding='same',
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool3')(x)
-    x = tf.keras.layers.Conv2D(
-        filters=512,
-        kernel_size=[3, 3],
-        padding='same',
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(
-        filters=512,
-        kernel_size=[3, 3],
-        padding='same',
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool4')(x)
-    x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dropout(rate=0.8)(x)
-    x = tf.keras.layers.Dense(units=1024,activation=tf.nn.relu)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Dropout(rate=0.8)(x)
-    x = tf.keras.layers.Dense(units=3755)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    return training.Model(imgInput, x, name="CWCR")
-
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
-model = CWCR((64, 64, 1))
+model = tf.keras.applications.EfficientNetV2B3(
+    input_shape=(64, 64, 1),
+);
 model.compile(
     optimizer=tf.keras.optimizers.Adam(),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
-checkpoint_filepath = './checkpoint/'
+checkpoint_filepath = './checkpointe/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
     verbose=1,
     save_weights_only=True,
     save_best_only=True)
 #897758 sample
-model.load_weights('./checkpoint/m1.03.fs')
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
 
 def representative_data_gen():
@@ -152,6 +99,4 @@ converter.representative_dataset = representative_data_gen
 
 tflite_model_quant = converter.convert()
 
-open("model8q.tflite", "wb").write(tflite_model_quant)
-tf.keras.applications.EfficientNetV2B3();
 

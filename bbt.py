@@ -23,17 +23,7 @@ flags.DEFINE_boolean('random_brightness', True, "whether to adjust brightness")
 flags.DEFINE_boolean('random_contrast', True, "whether to random constrast")
 flags.DEFINE_integer('charset_size', 3755, "Choose the first `charset_size` characters only.")
 flags.DEFINE_integer('image_size', 64, "Needs to provide same value as in training.")
-flags.DEFINE_integer('max_steps', 16002, 'the max training steps ')
-flags.DEFINE_integer('eval_steps', 100, "the step num to eval")
-flags.DEFINE_integer('save_steps', 500, "the steps to save")
 
-flags.DEFINE_string('checkpoint_dir', './checkpoint/', 'the checkpoint dir')
-flags.DEFINE_string('train_data_dir', './data/train/', 'the train dataset dir')
-flags.DEFINE_string('test_data_dir', './data/test/', 'the test dataset dir')
-
-flags.DEFINE_boolean('restore', False, 'whether to restore from checkpoint')
-flags.DEFINE_boolean('epoch', 1, 'Number of epoches')
-flags.DEFINE_integer('batch_size', 128, 'Validation batch size')
 flags.DEFINE_string('mode', 'validation', 'Running mode. One of {"train", "valid", "test"}')
 
 FLAGS = flags.FLAGS
@@ -71,15 +61,18 @@ def loadTR(TrFileName):
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
-model = tf.keras.applications.EfficientNetV2B3(
+model = tf.keras.applications.EfficientNetV2B1(
+    weights=None,
     input_shape=(64, 64, 1),
+    classes=3755,
+    classifier_activation=None
 );
 model.compile(
     optimizer=tf.keras.optimizers.Adam(),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
-checkpoint_filepath = './checkpointe/'
+checkpoint_filepath = './checkpointE/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
     verbose=1,
@@ -88,15 +81,17 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 #897758 sample
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
 
+
 def representative_data_gen():
   for input_value in tf.data.Dataset.from_tensor_slices(train_images).batch(1).take(100):
     # Model has only one input so each data point has one element.
     yield [input_value]
 
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
-converter.optimizations = [tf.lite.Optimize.DEFAULT]
-converter.representative_dataset = representative_data_gen
+#converter.optimizations = [tf.lite.Optimize.DEFAULT]
+#converter.representative_dataset = representative_data_gen
 
 tflite_model_quant = converter.convert()
 
+open("modelq.tflite", "wb").write(tflite_model_quant)
 

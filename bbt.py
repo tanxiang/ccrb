@@ -79,7 +79,8 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_weights_only=True,
     save_best_only=True)
 #897758 sample
-model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
+model.load_weights('./checkpointE/m0.37.fs')
+model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
 
 
 def representative_data_gen():

@@ -61,7 +61,7 @@ def loadTR(TrFileName):
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
-model = tf.keras.applications.EfficientNetV2B1(
+model = tf.keras.applications.EfficientNetV2B0(
     weights=None,
     input_shape=(64, 64, 1),
     classes=3755,
@@ -72,14 +72,14 @@ model.compile(
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
-checkpoint_filepath = './checkpointE/'
+checkpoint_filepath = './checkpointE0/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
     verbose=1,
     save_weights_only=True,
     save_best_only=True)
 #897758 sample
-model.load_weights(tf.train.latest_checkpoint('./checkpointE/'))
+model.load_weights(tf.train.latest_checkpoint(checkpoint_filepath))
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
 
 
@@ -94,5 +94,5 @@ converter = tf.lite.TFLiteConverter.from_keras_model(model)
 
 tflite_model_quant = converter.convert()
 
-open("modelq.tflite", "wb").write(tflite_model_quant)
+open("modelq0.tflite", "wb").write(tflite_model_quant)
 

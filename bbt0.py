@@ -81,8 +81,8 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 #897758 sample
 model.load_weights(tf.train.latest_checkpoint(checkpoint_filepath))
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
-
-
+#model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback])
+modelEval = model.evaluate(testDataSet)
 def representative_data_gen():
   for input_value in tf.data.Dataset.from_tensor_slices(train_images).batch(1).take(100):
     # Model has only one input so each data point has one element.

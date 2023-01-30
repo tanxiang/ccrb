@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from absl import flags
 import sys
+import random
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 flags.DEFINE_integer('image_size', 64, "Needs to provide same value as in training.")
 flags.DEFINE_boolean('random_flip_up_down', False, "Whether to random flip up down")
@@ -32,7 +34,7 @@ def loadTR(TrFileName):
         feature_dict = tf.io.parse_single_example(example_string, feature_description)
         imageExample = tf.image.resize(
             tf.image.convert_image_dtype(
-                tf.io.decode_png(feature_dict['image'], channels=1), tf.float32
+                tf.io.decode_image(feature_dict['image'], channels=1), tf.float32
             ),
             [FLAGS.image_size, FLAGS.image_size]
         )  # 解码PNG图片

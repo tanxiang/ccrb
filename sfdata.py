@@ -85,18 +85,26 @@ def draw_image(size,dataSet,writer):
             imgMemory = io.BytesIO()
             image.save(imgMemory, 'PNG')
             addSample += len(label)
-            print(label,addSample)
+            xmin = []
+            ymin = []
+            xmax = []
+            ymax = []
+            for objectBox in boxes:
+                xmin.append(float(objectBox[0])/size[0])
+                ymin.append(float(objectBox[1])/size[1])
+                xmax.append(float(objectBox[2])/size[0])
+                ymax.append(float(objectBox[3])/size[1])
             feature_dict = {
                 'image/encoded':
                     tf.train.Feature(bytes_list=tf.train.BytesList(value=[imgMemory.getvalue()])),
                 'image/object/bbox/xmin':
-                    tf.train.Feature(float_list=tf.train.FloatList(value=[b[0] for b in boxes])),
+                    tf.train.Feature(float_list=tf.train.FloatList(value=xmin)),
                 'image/object/bbox/ymin':
-                    tf.train.Feature(float_list=tf.train.FloatList(value=[b[1] for b in boxes])),
+                    tf.train.Feature(float_list=tf.train.FloatList(value=ymin)),
                 'image/object/bbox/xmax':
-                    tf.train.Feature(float_list=tf.train.FloatList(value=[b[2] for b in boxes])),
+                    tf.train.Feature(float_list=tf.train.FloatList(value=xmax)),
                 'image/object/bbox/ymax':
-                    tf.train.Feature(float_list=tf.train.FloatList(value=[b[3] for b in boxes])),
+                    tf.train.Feature(float_list=tf.train.FloatList(value=ymax)),
                 'image/object/class/label':
                     tf.train.Feature(int64_list=tf.train.Int64List(value=label))}
             #plt.imshow(np.asarray(image))
@@ -119,6 +127,6 @@ def draw_image(size,dataSet,writer):
 
 
 trainDataSet = loadTR('train0.tfr')
-testDataSet = loadTR('test2.tfr')
-with tf.io.TFRecordWriter('ssd.tfr') as writer:
-    draw_image([300,300],trainDataSet,writer)
+testDataSet = loadTR('test1.tfr')
+with tf.io.TFRecordWriter('ssdt.tfr') as writer:
+    draw_image([300,300],testDataSet,writer)

@@ -128,5 +128,5 @@ def draw_image(size,dataSet,writer):
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
-with tf.io.TFRecordWriter('ssdt.tfr') as writer:
-    draw_image([300,300],testDataSet,writer)
+with tf.io.TFRecordWriter('ssd.tfr') as writer:
+    draw_image([300,300],trainDataSet,writer)

@@ -61,26 +61,35 @@ def loadTR(TrFileName):
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
+from keras.applications.efficientnet_v2 import EfficientNetV2
 
-model = tf.keras.applications.EfficientNetV2B0(
-    weights=None,
-    input_shape=(64, 64, 1),
-    classes=3755,
-    classifier_activation=None
-);
+model = EfficientNetV2(
+        width_coefficient=1.0,
+        depth_coefficient=1.0,
+        default_size=224,
+        model_name="efficientnetv2-b0",
+        activation = tf.nn.relu6,
+        include_top=True,
+        weights=None,
+        input_shape=(64, 64, 1),
+        pooling=None,
+        classes=3755,
+        classifier_activation=None,
+        include_preprocessing=True, )
+
 model.compile(
     optimizer=tf.keras.optimizers.Adam(),
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
-checkpoint_filepath = './checkpointE0/'
+checkpoint_filepath = './checkpointE60/'
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
     verbose=1,
     save_weights_only=True,
     save_best_only=True)
 #897758 sample
-model.load_weights(tf.train.latest_checkpoint(checkpoint_filepath))
+#model.load_weights(tf.train.latest_checkpoint(checkpoint_filepath))
 model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
 #model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback])
 modelEval = model.evaluate(testDataSet)

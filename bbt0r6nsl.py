@@ -14,6 +14,9 @@ from keras.engine import training
 from tensorflow.python.ops import control_flow_ops
 from absl import flags
 from absl import logging
+import neural_structured_learning as nsl
+import neural_structured_learning as nsl
+
 
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -81,7 +84,7 @@ model.compile(
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
-checkpoint_filepath = './checkpointE60/'
+checkpoint_filepath = './checkpointE60nsl/'
 
 checkpointEBB = tf.train.latest_checkpoint(checkpoint_filepath)
 if checkpointEBB:

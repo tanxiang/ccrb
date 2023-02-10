@@ -32,10 +32,19 @@ FLAGS(sys.argv)
 
 def loadTR(TrFileName):
     rawDataset = tf.data.TFRecordDataset(TrFileName)  # 读取 TFRecord 文件
-    feature_description = {  # 定义Feature结构，告诉解码器每个Feature的类型是什么
-        'image': tf.io.FixedLenFeature([], tf.string),
-        'label': tf.io.FixedLenFeature([], tf.int64),
-    }
+    feature_description = {
+        'image/encoded':
+            tf.io.FixedLenFeature([], tf.string),
+        'image/object/bbox/xmin':
+            tf.io.VarLenFeature(tf.float32),
+        'image/object/bbox/ymin':
+            tf.io.VarLenFeature(tf.float32),
+        'image/object/bbox/xmax':
+            tf.io.VarLenFeature(tf.float32),
+        'image/object/bbox/ymax':
+            tf.io.VarLenFeature(tf.float32),
+        'image/object/class/label':
+            tf.io.VarLenFeature(tf.int64)}
     @staticmethod
     def dataAugmentation(images):
         if FLAGS.random_flip_up_down:
@@ -48,64 +57,71 @@ def loadTR(TrFileName):
 
     def parseExample(example_string):  # 将 TFRecord 文件中的每一个序列化的 tf.train.Example 解码
         feature_dict = tf.io.parse_single_example(example_string, feature_description)
-        imageExample = tf.image.resize(
-            tf.image.convert_image_dtype(
-                tf.io.decode_png(feature_dict['image'], channels=1), tf.float32
-            ),
-            [FLAGS.image_size, FLAGS.image_size]
-        )  # 解码PNG图片
+        imageExample = tf.image.convert_image_dtype(
+                tf.io.decode_png(feature_dict['image/encoded']), tf.float32
+            )
         imageExample = dataAugmentation(imageExample)
-        return imageExample, feature_dict['label']
+        return imageExample, feature_dict['image/object/class/label']
+
     return rawDataset.map(parseExample).batch(128)
 
 
-trainDataSet = loadTR('train0.tfr')
-testDataSet = loadTR('test1.tfr')
+trainDataSet = loadTR('ssd0.tfr')
+testDataSet = loadTR('ssdt1.tfr')
 from keras.applications.efficientnet_v2 import EfficientNetV2
 
-model = EfficientNetV2(
-        width_coefficient=1.0,
-        depth_coefficient=1.0,
-        default_size=224,
-        model_name="efficientnetv2-b0",
-        activation = tf.nn.relu6,
-        include_top=True,
-        weights=None,
-        input_shape=(64, 64, 1),
-        classes=3755,
-        classifier_activation=None,
-        include_preprocessing=False, )
+modelBB = EfficientNetV2(
+    width_coefficient=1.0,
+    depth_coefficient=1.0,
+    default_size=224,
+    model_name="efficientnetv2-b0",
+    activation=tf.nn.relu6,
+    include_top=False,
+    weights=None,
+    input_shape=(None, None, 1),
+    pooling=None,
+    classes=3755,
+    classifier_activation=None,
+    include_preprocessing=False, )
 
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(),
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
-)
 checkpoint_filepath = './checkpointE60/'
 
 checkpointEBB = tf.train.latest_checkpoint(checkpoint_filepath)
 if checkpointEBB:
-    model.load_weights(tf.train.latest_checkpoint(checkpoint_filepath))
+    modelBB.load_weights(tf.train.latest_checkpoint(checkpoint_filepath))
+print(modelBB.summary())
+converter = tf.lite.TFLiteConverter.from_keras_model(modelBB)
+tflite_model_quant = converter.convert()
 
+open("modelbbqr0.tflite", "wb").write(tflite_model_quant)
+
+modelBB.compile(
+    optimizer=tf.keras.optimizers.Adam(),
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
+)
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
+    filepath=os.path.join(checkpoint_filepath, "m{loss:.2f}.fs"),
     verbose=1,
     save_weights_only=True,
     save_best_only=True)
-#897758 sample
-model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=1,callbacks=[model_checkpoint_callback], validation_data=testDataSet,validation_steps=500)
-#model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback])
-#modelEval = model.evaluate(testDataSet)
+# 897758 sample
+modelBB.fit(trainDataSet.repeat(), steps_per_epoch=7014, epochs=1, callbacks=[model_checkpoint_callback],
+          validation_data=testDataSet, validation_steps=500)
+
+
+# model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback])
+# modelEval = model.evaluate(testDataSet)
 def representative_data_gen():
-  for input_value in tf.data.Dataset.from_tensor_slices(train_images).batch(1).take(100):
-    # Model has only one input so each data point has one element.
-    yield [input_value]
+    for input_value in tf.data.Dataset.from_tensor_slices(train_images).batch(1).take(100):
+        # Model has only one input so each data point has one element.
+        yield [input_value]
+
 
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
-#converter.optimizations = [tf.lite.Optimize.DEFAULT]
-#converter.representative_dataset = representative_data_gen
+# converter.optimizations = [tf.lite.Optimize.DEFAULT]
+# converter.representative_dataset = representative_data_gen
 
 tflite_model_quant = converter.convert()
 
 open("modelq0.tflite", "wb").write(tflite_model_quant)
-

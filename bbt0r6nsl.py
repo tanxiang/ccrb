@@ -137,7 +137,6 @@ model = EfficientNetV2(
         weights=None,
         input_shape=(64, 64, 1),
         classes=3755,
-        classifier_activation=None,
         include_preprocessing=False, )
 
 print(model.summary())
@@ -146,7 +145,7 @@ adv_model = nsl.keras.AdversarialRegularization(model,adv_config=adv_config)
 
 adv_model.compile(
     optimizer=tf.keras.optimizers.Adam(),
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(),
     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],
 )
 checkpoint_filepath = './checkpointE60nsl/'

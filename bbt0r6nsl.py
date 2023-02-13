@@ -106,7 +106,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_best_only=True)
 #897758 sample
 advData = convert_to_adversarial_training_dataset(trainDataSet)
-adv_model.fit(advData,batch_size=128)
+adv_model.fit(advData,batch_size=128,callbacks=[model_checkpoint_callback],steps_per_epoch=7014)
 #model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback])
 #modelEval = model.evaluate(testDataSet)
 def representative_data_gen():

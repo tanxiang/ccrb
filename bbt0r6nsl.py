@@ -15,7 +15,6 @@ from tensorflow.python.ops import control_flow_ops
 from absl import flags
 from absl import logging
 import neural_structured_learning as nsl
-import neural_structured_learning as nsl
 
 
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -59,7 +58,7 @@ def loadTR(TrFileName):
         )  # 解码PNG图片
         imageExample = dataAugmentation(imageExample)
         return imageExample, feature_dict['label']
-    return rawDataset.map(parseExample).batch(64)
+    return rawDataset.map(parseExample).batch(128)
 
 
 def convert_to_adversarial_training_dataset(dataset):
@@ -70,60 +69,6 @@ def convert_to_adversarial_training_dataset(dataset):
 
 trainDataSet = loadTR('train0.tfr')
 testDataSet = loadTR('test1.tfr')
-
-def CWCR(inputShape=None):
-    inputShape = imagenet_utils.obtain_input_shape(
-        inputShape,
-        default_size=64,
-        min_size=32,
-        data_format=backend.image_data_format(),
-        require_flatten=True
-    )
-    imgInput = tf.keras.layers.Input(inputShape,name='image')
-    x = tf.keras.layers.Conv2D(
-        64,  # 卷积层神经元（卷积核）数目
-        kernel_size=(3, 3),  # 感受野大小
-        padding='same',  # padding策略（vaild 或 same）
-        name='conv0'
-    )(imgInput)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2), padding='same', name='pool1')(x)
-    x = tf.keras.layers.Conv2D(
-        128,
-        kernel_size= (3, 3),
-        padding='same',
-        name='conv1'
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool2')(x)
-    x = tf.keras.layers.Conv2D(
-        filters=256,
-        kernel_size=[3, 3],
-        padding='same',
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool3')(x)
-    x = tf.keras.layers.Conv2D(
-        filters=512,
-        kernel_size=[3, 3],
-        padding='same',
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(
-        filters=512,
-        kernel_size=[3, 3],
-        padding='same',
-    )(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.MaxPool2D(pool_size=[2, 2], strides=(2, 2), padding='same', name='pool4')(x)
-    x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dropout(rate=0.8)(x)
-    x = tf.keras.layers.Dense(units=1024,activation=tf.nn.relu)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Dropout(rate=0.8)(x)
-    x = tf.keras.layers.Dense(units=3755)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    return training.Model(imgInput, x, name="CWCR")
 
 from keras.applications.efficientnet_v2 import EfficientNetV2
 
@@ -161,7 +106,7 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     save_best_only=True)
 #897758 sample
 advData = convert_to_adversarial_training_dataset(trainDataSet)
-adv_model.fit(advData,batch_size=64)
+adv_model.fit(advData,batch_size=128)
 #model.fit(trainDataSet.repeat(),steps_per_epoch=7014,epochs=2,callbacks=[model_checkpoint_callback])
 #modelEval = model.evaluate(testDataSet)
 def representative_data_gen():

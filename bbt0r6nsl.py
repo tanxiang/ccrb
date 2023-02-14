@@ -2,6 +2,8 @@ import os
 import sys
 import random
 import time
+
+import keras
 import numpy as np
 import tensorflow as tf
 import pickle
@@ -101,7 +103,7 @@ if checkpointEBB:
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=os.path.join(checkpoint_filepath,"m{loss:.2f}.fs"),
-    verbose=1,)
+    verbose=1,save_weights_only=True)
 #897758 sample
 advData = convert_to_adversarial_training_dataset(trainDataSet)
 adv_model.fit(advData,batch_size=128,callbacks=[model_checkpoint_callback],steps_per_epoch=7014)
